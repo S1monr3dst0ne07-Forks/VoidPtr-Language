@@ -3,7 +3,7 @@ using Interpreter;
 using Lexing;
 using Parsing;
 
-string file = "main.vptr";
+string file = "D:/Personal/ProgramingProjects/Csharp_Projects/ByteLang/src/main.vptr";
 
 
 if(args.Length > 0)
@@ -21,7 +21,7 @@ else
 {
     if(!File.Exists(file))
     {
-        ErrorHandler.Throw("No 'main.bytl' file could be found. Either create one or pass your file.");
+        ErrorHandler.Throw("No 'main.vptr' file could be found. Either create one or pass your file.");
     }
 }
 

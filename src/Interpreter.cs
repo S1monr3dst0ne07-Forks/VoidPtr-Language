@@ -51,7 +51,7 @@ public class Engine
             memory[MemAccess(instruction.val1)] = (byte)instruction.val2.value;
             return;
         }
-        memory[MemAccess(instruction.val1)] = memory[MemAccess(instruction.val2)];
+        memory[MemAccess(instruction.val2)] = memory[MemAccess(instruction.val1)];
     }
 
     private void And(in Instruction instruction)

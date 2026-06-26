@@ -12,11 +12,11 @@ public static class ErrorHandler
 
     public static void Throw(string msg, int line)
     {
-        Throw("Error: "+ msg + $" at: line {line}");
+        Throw(msg + $" at: line {line}");
     }
 
     public static void Throw(string msg, Token faulty)
     {
-        Throw("Error: "+ msg + $" at: line {faulty.line} in {faulty.file}");
+        Throw(msg + $" at: line {faulty.line} in {faulty.file}");
     }
 }

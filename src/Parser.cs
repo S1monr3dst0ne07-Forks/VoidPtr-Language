@@ -11,6 +11,7 @@ public class Parser
     private Token current;
     private HashSet<TokenType> opTypes = [TokenType.And,
                                           TokenType.Or,
+                                          TokenType.Xor,
                                           TokenType.ShiftLeft, 
                                           TokenType.ShiftRight, 
                                           TokenType.Assign];
@@ -56,6 +57,7 @@ public class Parser
         InstrValue address1 = new();
         Next();
 
+        bool lastAddress = false; //check if last token was a value
        
         while(current.type != TokenType.End)
         {
@@ -63,19 +65,27 @@ public class Parser
             {
                 case TokenType.OpenBr or TokenType.Address:
                     address1 = MakeAddress();
+                    if(lastAddress)
+                    {
+                        ExpectError("Expected operation");
+                    }
+                    lastAddress = true;
                 continue;
                 
                 case TokenType.Label:
                     MakeLabel(current.val, instructions.Count);
                     Next();
+                    lastAddress = false;
                 continue;
 
                 case TokenType.Not:
                     instructions.Add(MakeNot());
+                    lastAddress = false;
                 continue;
 
                 case TokenType.Cmp:
                     instructions.Add(MakeCmp());
+                    lastAddress = false;
                 continue;
 
                 case TokenType.Jmp:
@@ -88,6 +98,7 @@ public class Parser
                     };
                     instructions.Add(inst);
                     Next();
+                    lastAddress = false;
                 continue;
 
             }
@@ -95,10 +106,19 @@ public class Parser
             if(opTypes.Contains(current.type))
             {
                 instructions.Add(MakeOp(address1));
+                lastAddress = false;
             }
             else
             {
                 ExpectError("Invalid expression start");
+            }
+        }
+
+        foreach(KeyValuePair<string,List<int>> subs in labelSubscribers)
+        {
+            if(subs.Value.Count != 0)
+            {
+                ExpectError($"Label '{subs.Key}' was used but never defined");
             }
         }
 
@@ -113,9 +133,10 @@ public class Parser
             foreach(int indx in subs)
             {
                 Instruction ins = instructions[indx];
-                ins.val1.value = indx;
+                ins.val1.value = instrIndx;
                 instructions[indx] = ins;
             }
+            subs.Clear();
         }
     }
 
@@ -238,7 +259,7 @@ public class Parser
             int val = int.Parse(current.val);
             if(val > 255)
             {
-                ExpectError("Literals are only allowed to be in a 1 byte range.");
+                ExpectError("Literals are only allowed to be in a 1 byte range");
             }
             val2 = new InstrValue(AddressMode.Const, val);
             Next();
