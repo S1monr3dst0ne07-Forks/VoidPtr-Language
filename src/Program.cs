@@ -3,7 +3,7 @@ using Interpreter;
 using Lexing;
 using Parsing;
 
-string file = "main.bytl";
+string file = "main.vptr";
 
 
 if(args.Length > 0)
