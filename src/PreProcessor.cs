@@ -50,24 +50,9 @@ public class PreProcessor
             }
             else if(current.type == TokenType.Name)
             {
-                if(macroDict.TryGetValue(current.val,out List<Token> toks))
+                foreach(Token t in ExpandDef(current.val))
                 {
-                    foreach(Token t in toks)
-                    {
-                        if(t.type == TokenType.Label && t.val.StartsWith("__"))
-                        {
-                            Token localLabel = t;
-                            localLabel.val = $"{globalMacroCount}_{localLabel.val}_{globalMacroCount}";
-                            processed.Add(localLabel);
-                            continue;
-                        }
-                        processed.Add(t);
-                    }
-                    globalMacroCount++;
-                }
-                else
-                {
-                    ErrorHandler.Throw($"Macro '{current.val}' not defined in current state.", current);
+                    processed.Add(t);
                 }
             }
             else
@@ -122,6 +107,44 @@ public class PreProcessor
         
     }
 
+    private List<Token> ExpandDef(string macName)
+    {
+        globalMacroCount++;
+        int currentMacroID = globalMacroCount;
+
+        List<Token> expanded = new();
+
+        if(macroDict.TryGetValue(macName, out List<Token> macroTokens))
+        {
+            foreach(Token t in macroTokens)
+            {
+                if(t.type == TokenType.Name)
+                {
+                    foreach(Token rT in ExpandDef(t.val))
+                    {
+                        expanded.Add(rT);
+                    }
+                    continue;
+                }
+                else if(t.type == TokenType.Label && t.val.StartsWith("__"))
+                {
+                    Token copy = t;
+                    copy.val = $"{currentMacroID}{copy.val}";
+                    expanded.Add(copy);
+                    continue;
+                }
+                expanded.Add(t);
+            }
+        }
+        else
+        {
+            ErrorHandler.Throw($"Macro '{current.val}' not defined in current state.", current);
+        }
+
+
+        return expanded;
+    }
+
     private void MakeDef()
     {
         Next();
@@ -138,23 +161,8 @@ public class PreProcessor
         Next();
         while(current.type != TokenType.EndMacro && current.type != TokenType.End)
         {
-            if(current.type == TokenType.Name)
-            {
-                if(macroDict.TryGetValue(current.val,out List<Token> toks))
-                {
-                    foreach(Token t in toks)
-                    {
-                        macToks.Add(t);
-                    }
-                }
-                else
-                {
-                    ErrorHandler.Throw($"Macro '{current.val}' not defined in current state.", current);
-                }
-                Next();
-                continue;
-            }
-            else if(current.type == TokenType.Macro)
+            
+            if(current.type == TokenType.Macro)
             {
                 ErrorHandler.Throw($"You aren't powerfull enough to wield recursive macros, mortal.", current);
             }

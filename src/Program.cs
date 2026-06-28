@@ -50,9 +50,11 @@ List<Instruction> instructions = parser.MakeInstructs();
 
 
 string instStr = "";
+int instrCount = 0;
 foreach(Instruction inst in instructions)
 {
-    instStr += inst.ToString() + "\n";
+    instStr += instrCount +": "+ inst.ToString() + "\n";
+    instrCount++;
 }
 
 File.WriteAllText("inst_dump.txt",instStr);
