@@ -77,6 +77,40 @@ public class PreProcessor
         {
             MakePaste();
         }
+        else if(current.val == "stream")
+        {
+            MakeStream();
+        }
+        else
+        {
+            ErrorHandler.Throw($"Unknown macro type '{current.val}'",current);
+        }
+    }
+
+    private void MakeStream()
+    {
+        Next();
+        Expect(TokenType.Address);
+
+        int streamAdr = int.Parse(current.val);
+        Next();
+
+        while(current.type == TokenType.AsValue)
+        {
+            Next();
+            Expect(TokenType.Address);
+            
+            processed.Add(new(TokenType.Address,$"{streamAdr}",current.line,current.file));
+            processed.Add(new(TokenType.Assign,"->",current.line,current.file));
+        
+            processed.Add(new(TokenType.AsValue,"$",current.line,current.file));
+            processed.Add(current);
+            Next();
+            streamAdr++;
+
+        }
+        
+        Expect(TokenType.EndMacro);
     }
 
     private void MakePaste()

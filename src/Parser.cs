@@ -254,8 +254,10 @@ public class Parser
     {
         InstrValue val2;
 
-        if(current.type == TokenType.Value)
+        if(current.type == TokenType.AsValue)
         {
+            Next();
+            Expect(TokenType.Address);
             int val = int.Parse(current.val);
             if(val > 255)
             {

@@ -26,7 +26,7 @@ v0 -> r0
 #end
 
 
-
+;
 r0 -> $1
 r1 -> $3
 
@@ -38,6 +38,6 @@ add8
 
 sysarg ar0
 syscall printNum
-
+;
 
 

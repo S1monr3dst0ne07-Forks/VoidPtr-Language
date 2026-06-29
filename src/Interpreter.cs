@@ -127,25 +127,97 @@ public class Engine
         switch(memory[0])
         {
             case 1: //print num
-                Console.WriteLine(memory[memory[1]]);
+                Console.Write(memory[memory[1]]);
             break;
 
             case 2: //print char
-                Console.WriteLine((char)memory[memory[1]]);
+                Console.Write((char)memory[memory[1]]);
             break;
 
-            case 3: //Alloc mem
+            case 3:
+                memory[memory[1]] = (byte)Console.ReadKey().KeyChar;
+            break;
+
+            case 4: //Alloc mem
                 byte[] nArr = new byte[memory.Length+memory[memory[1]]];
                 memory.CopyTo(nArr,0);
                 memory = nArr;
             break;
 
-            case 4: //Free mem
+            case 5: //Free mem
                 byte[] freedArr = new byte[memory.Length - memory[memory[1]]];
                 Array.Copy(memory,freedArr,Math.Min(memory.Length,freedArr.Length));
             break;
 
+            case 6: //Load 32 bit address, endianess depends on hardware. Good luck.
+                Load32Sys();
+            break;
+
+            case 7: //Set 32 bit address
+               Set32Sys();
+            break;
+
+            case 8: //Load file
+                LoadFSys();
+            break;
+
         }
+    }
+
+
+
+    private void LoadFSys()
+    {
+        //Layout: [filename] [\0] [32bit load address]
+        int cur = memory[1];
+
+        string path = "";
+        while(memory[cur] != 0)
+        {
+            path += (char)memory[cur];
+            cur++;
+        }
+        cur++; //At first byte of address
+
+        byte[] file = File.ReadAllBytes(path);
+        
+        byte[] writeAdrs = new byte[4];
+        for(int i = 0; i < 4 ; i++)
+        {
+            writeAdrs[i] = memory[cur];
+            cur++;
+        }
+
+        UInt32 address = BitConverter.ToUInt32(writeAdrs);
+        for(int i = 0; i<file.Length; i++)
+        {
+            memory[address+i] = file[i];
+        }
+
+    }
+
+    private void Set32Sys()
+    {
+         //1 (points to value) layout: [value] [a1] [a2] [a3] [a4]
+        byte val = memory[memory[1]];
+        byte[] adrs = new byte[4];
+        for(int i = 0; i < 4 ; i++)
+        {
+            adrs[i] = memory[memory[1]+1+i];
+        }
+        memory[BitConverter.ToUInt32(adrs)] = val;
+    }
+
+    private void Load32Sys()
+    {
+        //1 is expected to hold the address of the first byte of the 32 bit address
+        byte[] adr = new byte[4];
+        for(int i = 0; i < 4 ; i++)
+        {
+            adr[i] = memory[memory[1]+i];
+        }
+        //Setting 1 to loaded value:
+        memory[1] = memory[BitConverter.ToUInt32(adr)]; //Using uint32 here, allows for larger adr space
     }
 
     private void Debug(in Instruction cur)

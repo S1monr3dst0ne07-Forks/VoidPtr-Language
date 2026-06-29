@@ -14,6 +14,7 @@ public enum TokenType : byte
     OpenBr,
     ClosedBr,
     Assign, // ->
+    AsValue, // $ 
     And,
     Or,
     Xor,
@@ -87,6 +88,7 @@ public class Lexer
         keywordMap.Add("->",new(TokenType.Assign,"->"));
     }
 
+    
 
     private char Next()
     {
@@ -128,18 +130,15 @@ public class Lexer
                 if(current == '#')
                 {
                     tokens.Add(MakeMacro());
+                    curIndx--;
                 }
                 else if(current == '$')
                 {
-                    Next();
-                    if(numbers.Contains(current))
-                    {
-                        tokens.Add(new(TokenType.Value, MakeNum(),lineCount,fileName));
-                    }
-                    else
-                    {
-                        ErrorHandler.Throw("Expected number after $.");
-                    }
+                    tokens.Add(new(TokenType.AsValue,"$",lineCount,fileName));
+                }
+                else if(current == '"')
+                {
+                    MakeString(tokens);
                 }
                 else if(numbers.Contains(current))
                 {
@@ -148,18 +147,30 @@ public class Lexer
                 }
                 else if(current == '_')
                 {
-
                     tokens.Add(MakeLabel());
+                    curIndx--;
                 }
                 else
                 {
                     tokens.Add(MakeKeyword());
+                    curIndx--;
                 }
             }
 
         }
         tokens.Add(new(TokenType.End,"END"));
         return tokens;
+    }
+
+    private void MakeString(List<Token> tokenList)
+    {
+        Next();
+        while(current != '"' && current != '\0')
+        {
+            tokenList.Add(new(TokenType.AsValue,"$",lineCount,fileName));
+            tokenList.Add(new(TokenType.Address,$"{(int)current}",lineCount,fileName));
+            Next();
+        }
     }
 
     private void MakeComment()
@@ -224,7 +235,7 @@ public class Lexer
         string word = $"{current}";
         Next();
 
-        while(!skipChars.Contains(current) && current != '\0')
+        while(!skipChars.Contains(current) && current != '\0' && current != '[' && current !=']')
         {
             word+=current;
             Next();
