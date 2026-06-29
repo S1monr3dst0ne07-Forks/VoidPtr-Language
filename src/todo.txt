@@ -1,3 +1,0 @@
-stream macro
-Console input macro
-multi byte addressing syscall
