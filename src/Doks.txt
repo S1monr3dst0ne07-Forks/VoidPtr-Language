@@ -1,0 +1,270 @@
+This is a temporary minimal documentation of the VoidPtr language.
+
+Usage:
+    The CLI accepts 1 or 0 arguments.
+    
+    If no argument is passed, VoidPtr will search for a file named 'main.vptr'
+
+    If an argument is passed, VoidPtr will expect a file path and search for it.
+    
+
+
+Addresses
+
+VoidPtr only allows you to work with single bytes in memory.
+You address bytes by writing their address as a number.
+
+Example:
+
+3 -> 4
+(This copies the value from byte 3 to byte 4)
+
+
+Constants
+
+Constants are denominated by $ and can be at most a byte.
+Number range is 0 - 255.
+
+3 -> $42
+(Sets byte 3 to value 42)
+
+
+Indirect addressing
+
+You can use a value stored in a byte as an address.
+
+3 -> $6 
+(Moves the value 6 into 3)
+
+[3] -> 4
+(indirect: uses 6 (value at 3) as the address)
+
+*As you may notice, this limits the address space of pointers to 255 bytes,
+higher addresses are accessible by system calls. Direct access is not limited.
+
+Logical operations
+
+Logical operations are performed bitwise.
+
+-Double operations (2 inputs, 1 output)
+    structure: [a] operator [b] -> [dest. address]
+
+    a has to be an address.
+    The destination has to be an address.
+    b can be a value or an address.
+
+    2 -> $1
+    3 -> $0
+
+    2 & 3 -> 4
+    (performes bitwise and on 2 and 3 and writes result to 4)
+
+    2 & $1 -> 4
+    (performs same operation with constant)
+
+    Types of double operations:
+        & bitwise and
+        | bitwise or
+        ^ bitwise exclusive or (xor)
+        < bitshift left
+        > bitshift right
+        *the second argument of bitshift determines the shift amount.
+
+        -> assign
+        *writes value from left to right. If right is a constant, left gets overwritten with the value.
+
+-Single operations (1 input, 1 output)
+    structure: [operator] [a] -> [dest. address]
+
+    a can be an address or constant. 
+    destination has to be an address.
+
+    ! 2 -> 3
+    (performes bitwise not on 2 and moves result into 3)
+
+    ! $1 -> 4
+    (operation on constant)
+
+    Types of single operations:
+        ! bitwise not
+
+
+The compare operation
+    structure: ? [a]
+
+    a has to be an address.
+
+    Compare skips the next instruction if value at a is not 0.
+
+    The statement:
+
+        ? 3
+        2 -> $5
+        2 -> $7
+
+    Can be read as:
+        if(3 == 0)
+        {
+            set 2 to $5
+        }
+        else:
+            set 2 to $7
+            continue...
+
+Labels 1
+    Labels are used to mark places in code and jump to them.
+
+    Labels are defined by writing '_' and poviding a name:
+
+    _start
+        ...
+    _end
+
+    Those labels are defined globaly and can be jumped to at any point in the programm.
+
+Jump
+    Jump operations are used to move to or skip code.
+
+    structure: '[label]
+
+    Label has to be a defined label.
+
+    '_start
+    (redirects programm to start)
+
+System calls
+    System calls are used to comunicate with the interpreter and the outside world.
+
+    The bytes 0 and 1 are special memory addresses used for system calls.
+    
+    0 holds the value for the type of system call
+    1 holds a pointer to the arguments passed to the call. *layout depends on syscall type.
+
+    Important: 0 is always $0, it gets automatically reset after every system call.
+
+    Type of calls:
+        n is the byte referenced by 1.
+
+        $1 : print byte n as number. 
+        $2 : print byte n as character.
+        $3 : accept a single character as input and store it at n.
+        $4 : allocates n bytes more memory. (linear memory increase!)
+        $5 : deallocates n bytes of memory. (linear memory decrease! Can lead to data loss.)
+        
+        $6 : Gets a 32 bit (4 byte) address at n and loads its value into 1
+            layout: [n, n+1, n+2, n+3] 
+        
+        $7 : Gets value at n, takes next 4 bytes as address and sets byte at address to value at n.
+            layout: [n(value)] [(address) n+1,n+2,n+3,n+4]
+
+        $8 : Loads the programm counter (32 bit) into bytes at n
+        $9 : Converts 4 bytes at n to int32 and sets programm counter to that value 
+        
+        $10 : Expects a null terminated file path at n followed by the write address at which the bytes of the file will be inserted.
+            layout: [filename] [\0] [32bit load address]
+        
+    Example:
+        2 -> $65
+
+        1 -> $2
+        (Pass reference to 2 as argument)
+
+        0 -> $2
+        (Call print character. Prints: 'A')
+
+
+    
+Macros
+
+Macros tell the compiler to generate certain code for you.
+
+All macros start with #, some macros require you to end them with #end.
+
+  #def [name] [code ...] #end
+    The define macro lets you define a name which later gets replaced by the code you write into its body.
+
+  #def reset_mem
+        2 -> $0
+        3 -> $0
+        4 -> $0
+        5 -> $0
+    #end
+
+    Inside a programm:
+        ...
+        ? 3 '_reset
+        '_start
+
+        _reset
+        reset_mem (code of reset_mem gets inserted here.)
+
+    You are allowed to use previously defined macros inside of macros:
+        #def print_3 1 -> $3 0 -> $1 #end
+
+        #def my_macro
+            3 -> $5
+            print_3 
+            3 -> 2$
+            print_3
+        #end
+
+    Labels 2: local labels.
+        The #def macro supports the use of labels.
+        You can define simple global labels with one underscore,
+
+        _name
+
+        This can cause conflicts if you use a macro multiple times.
+        To create a local label, which is only accessible from inside one instance of a macro,
+        you need to preface the name with two underscores:
+        __name (local label, only usable from inside the macro definition)
+
+
+    #paste [filepath]
+
+    paste is similair to include in C. It simply pastes code from the referenced file at the place it was called.
+
+    Example: 
+        #paste file2.vptr
+        macro_from_other_file
+
+    #stream [start_address] [values ...] #end 
+
+    stream lets you write multiple values to memory starting at start_address.
+    All values have to be constants.
+
+    Example:
+        #stream 8 $65 $66 $67 #end
+
+        compiles to:
+            8 -> $65
+            9 -> $66
+            10 -> $67
+
+
+Strings
+
+Strings get compiled to const values.
+
+    Example:
+        2 -> "A"
+
+        compiles to:
+        2 -> $65 (ascii value of A)
+
+Strings can be used with stream to easily write sentences:
+    #stream 2 "Hello World" $0 #end
+
+    compiles to:
+        #stream 2 $72 $101 $108 $108 $111 $32 $87 $111 $114 $108 $100 $0 #end
+
+
+    
+
+    
+
+        
+
+        
+
+

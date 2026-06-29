@@ -106,6 +106,11 @@ public class Engine
 
     private void Not(in Instruction instruction)
     {
+        if(instruction.val1.mode == AddressMode.Const)
+        {
+            memory[MemAccess(instruction.val2)] = (byte)~instruction.val1.value;
+            return;
+        }
         memory[MemAccess(instruction.val2)] = (byte)~memory[MemAccess(instruction.val1)];
     }
 
@@ -142,11 +147,13 @@ public class Engine
                 byte[] nArr = new byte[memory.Length+memory[memory[1]]];
                 memory.CopyTo(nArr,0);
                 memory = nArr;
+                GC.Collect();
             break;
 
             case 5: //Free mem
                 byte[] freedArr = new byte[memory.Length - memory[memory[1]]];
                 Array.Copy(memory,freedArr,Math.Min(memory.Length,freedArr.Length));
+                GC.Collect();
             break;
 
             case 6: //Load 32 bit address, endianess depends on hardware. Good luck.
@@ -216,11 +223,13 @@ public class Engine
             cur++;
         }
 
+
         UInt32 address = BitConverter.ToUInt32(writeAdrs);
         for(int i = 0; i<file.Length; i++)
         {
             memory[address+i] = file[i];
         }
+
 
     }
 
@@ -255,6 +264,7 @@ public class Engine
 
     public void Run()
     {
+        GC.Collect();
         try
         {
             while(pc<code.Count)
