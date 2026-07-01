@@ -214,7 +214,7 @@ public class Engine
         }
         cur++; //At first byte of address
 
-        byte[] file = File.ReadAllBytes(path);
+        
         
         byte[] writeAdrs = new byte[4];
         for(int i = 0; i < 4 ; i++)
@@ -225,10 +225,20 @@ public class Engine
 
 
         UInt32 address = BitConverter.ToUInt32(writeAdrs);
-        for(int i = 0; i<file.Length; i++)
-        {
-            memory[address+i] = file[i];
+
+        try
+        {  
+            byte[] file = File.ReadAllBytes(path);
+            for(int i = 0; i<file.Length; i++)
+            {
+                memory[address+i] = file[i];
+            }
         }
+        catch
+        {
+            ErrorHandler.Throw($"Could not load file: {path}. Does that path exist? Did you reserve enough memory?");
+        }
+        
 
 
     }

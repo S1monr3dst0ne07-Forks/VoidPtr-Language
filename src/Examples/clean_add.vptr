@@ -1,0 +1,24 @@
+
+#def result 4 #end
+#def carry  5 #end
+#def byte_a 2 #end
+#def byte_b 3 #end
+
+byte_a -> $3
+byte_b -> $1
+
+_add_loop
+? byte_b '_end 
+
+byte_a & byte_b -> carry
+byte_a ^ byte_b -> result
+
+carry < $1 -> byte_b
+result -> byte_a
+
+'_add_loop
+
+_end
+
+1 -> $result
+0 -> $1

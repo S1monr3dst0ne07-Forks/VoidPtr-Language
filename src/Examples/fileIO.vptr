@@ -1,0 +1,25 @@
+#paste sio.vptr
+
+#stream 10 "hello.txt" $0 $20 #end
+
+1 -> $10
+0 -> $10
+
+r4 -> $20
+
+_hello_loop
+
+r4 -> 1
+0 -> $2
+
+r4 -> r0
+r1 -> $1
+
+add8
+
+r0 -> r4
+
+? [r4] '_hello_end
+'_hello_loop
+
+_hello_end

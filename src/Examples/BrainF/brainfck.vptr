@@ -1,0 +1,196 @@
+;
+This is a Brainfuck implementation written in Voidptr.
+This version only uses the first 255 bytes for simplicity, 
+make sure not to load any programms which exceed programm space.
+;
+
+#paste sio.vptr
+
+;load input file;
+
+#stream 20 "main.bf" $0 $28 #end
+
+1 -> $20 ;pass file call argument pointer;
+syscall $10 ;Load file;
+
+
+#def pointer r3 #end ;byte holding the bf pointer;
+#def pc r4 #end
+#def stack_ptr r5 #end
+
+;mem layout: 28 - 160 code, 161 - 170 loop stack, 171 - 255 bf memory; 
+
+pointer -> $171
+stack_ptr -> $161
+pc -> $27
+r1 -> $1
+
+'_main
+
+; ----- OP Labels ----- ;
+;> op;
+_inc_ptr 
+    pointer -> r0
+    r1 -> $1
+    add8
+    r0 -> pointer
+
+    '_main
+
+;< op;
+_dec_ptr 
+
+    pointer -> r0
+    r1 -> $1
+    sub8
+    r0 -> pointer
+
+    '_main
+
+;+ op;
+_plus 
+
+    [pointer] -> r0
+    r1 -> $1
+    add8
+    r0 -> [pointer]
+
+    '_main
+
+;- op;
+_minus
+    [pointer] -> r0
+    r1 -> $1
+    sub8
+    r0 -> [pointer]
+
+    '_main
+
+;. op;
+_out 
+
+    pointer -> 1
+    syscall printChar
+
+    '_main
+
+
+;, op;
+_in 
+
+    pointer -> 1
+    syscall getChar
+
+    '_main
+
+;[  op;
+_start_loop
+    ? [pointer] '__skip_loop
+
+    ;enter loop;
+    stack_ptr -> r0
+    r1 -> $1
+    add8
+    r0 -> stack_ptr
+    pc -> [stack_ptr] ;push current pc to loop stack;
+    '_main
+
+    ;skip loop, (skip to next ]);
+    
+    __skip_loop
+        ;increase pc;
+        pc -> r0
+        r1 -> $1
+        add8
+        r0 -> pc
+
+        ? [pc] '_end ;end if we reach 0;
+
+        [pc] -> r0
+        r1 -> "]"
+        sub8
+        ? r0 '_main
+        '__skip_loop
+    
+
+;] op;
+_end_loop
+
+    ? [pointer] '__pop_loop ;check if current is 0;
+
+    [stack_ptr] -> pc
+
+    '_main
+
+    __pop_loop
+    stack_ptr -> r0
+    r1 -> $1
+    sub8
+    r0 -> stack_ptr
+    '_main
+
+
+__loop_back
+
+'_main
+
+; ----- Main Loop ----- ;
+
+_main
+
+;increase pc;
+pc -> r0
+r1 -> $1
+add8
+r0 -> pc
+
+;print vlaue at r4 ptr
+pc -> 1
+syscall printChar
+;
+
+[pc] -> r0
+r1 -> ">"
+sub8
+? r0 '_inc_ptr
+
+[pc] -> r0
+r1 -> "<"
+sub8
+? r0 '_dec_ptr
+
+[pc] -> r0
+r1 -> "+"
+sub8
+? r0 '_plus
+
+[pc] -> r0
+r1 -> "-"
+sub8
+? r0 '_minus
+
+[pc] -> r0
+r1 -> "."
+sub8
+? r0 '_out
+
+[pc] -> r0
+r1 -> ","
+sub8
+? r0 '_in
+
+[pc] -> r0
+r1 -> "["
+sub8
+? r0 '_start_loop
+
+[pc] -> r0
+r1 -> "]"
+sub8
+? r0 '_end_loop
+
+? [pc] '_end
+
+
+_end
+
