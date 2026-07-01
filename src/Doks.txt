@@ -8,6 +8,11 @@ Usage:
     If an argument is passed, VoidPtr will expect a file path and search for it.
     
 
+Comments
+
+Comments need to e enclosed in ;
+
+;This is a comment;
 
 Addresses
 

@@ -4,24 +4,50 @@
 #def r3 5 #end
 #def r4 6 #end
 
-#def ar0 $2 #end
-#def ar1 $3 #end
-#def ar2 $4 #end
-#def ar3 $5 #end
-#def ar4 $6 #end
+#def a0 7 #end
+#def a1 8 #end
+#def a2 9 #end
 
-#def v0 7 #end
-#def v1 8 #end
-#def v2 9 #end
-#def v3 10 #end
-#def v4 11 #end
+#def s0 10 #end
+#def s1 11 #end
 
-#def av0 $7 #end
-#def av1 $8 #end
-#def av2 $9 #end
-#def av3 $10 #end
-#def av4 $11 #end
+;register mem space end;
+#def le 20 #end
 
 #def syscall 0 -> #end
 #def printNum $1 #end
+#def printChar $2 #end
+#def getChar $3 #end
 #def sysarg 1 -> #end
+
+
+
+#def add8
+;load args;
+r0 -> a0
+r1 -> a1
+
+__add_loop
+? a1 '__end ;check if carry is 0;
+
+a0 & a1 -> a2
+a0 ^ a1 -> a0
+
+a2 < $1 -> a1
+
+'__add_loop
+
+__end
+a0 -> r0
+
+#end
+
+#def sub8 
+    ! r1 -> r1
+    r0 -> s0
+    r0 -> $1
+    add8
+    r0 -> r1
+    s0 -> r0
+    add8
+#end

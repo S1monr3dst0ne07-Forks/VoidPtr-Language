@@ -1,0 +1,116 @@
+#paste sio.vptr
+
+;load code input;
+
+#stream 20 "main.bf" $0 $30 $0 $0 $0 #end
+sysarg $20
+syscall $10
+
+;#stream 30 "HI COMPUTER" #end;
+
+
+
+
+#def pointer r3 #end
+#def pc r4 #end
+
+#def breakpoint 
+    pc -> 1
+    syscall $2
+    1 -> $pc
+    syscall $1
+    syscall $3
+    1 -> $1
+#end
+
+pc -> $29
+
+'_main
+
+_inc_ptr
+pointer -> r0
+r1 -> $1
+add8
+r0 -> pointer
+'_main
+
+_dec_ptr
+pointer -> r0
+r1 -> $1
+sub8
+r0 -> pointer
+'_main
+
+_plus
+[pointer] -> r0
+r1 -> $1
+add8
+r0 -> [pointer]
+'_main
+
+_minus
+[pointer] -> r0
+r1 -> $1
+sub8
+r0 -> [pointer]
+'_main
+
+_out
+sysarg pointer
+syscall printChar
+'_main
+
+_in
+sysarg pointer
+syscall getChar
+'_main
+
+
+_main
+
+pc -> r0
+r1 -> $1
+add8
+r0 -> pc
+
+breakpoint
+
+? [pc] '_end
+
+[pc] -> r0
+r1 -> "<"
+sub8
+
+? r0 '_dec_ptr
+
+[pc] -> r0
+r1 -> ">"
+sub8
+
+? r0 '_inc_ptr
+
+[pc] -> r0
+r1 -> "+"
+sub8
+
+? r0 '_plus
+
+[pc] -> r0
+r1 -> "-"
+sub8
+
+? r0 '_minus
+
+[pc] -> r0
+r1 -> "."
+sub8
+
+? r0 '_out
+
+[pc] -> r0
+r1 -> ","
+sub8
+
+? r0 '_in
+
+_end
