@@ -2,9 +2,9 @@ namespace Interpreter;
 
 public enum AddressMode : byte
 {
-    Direct,
-    Indirect,
-    Const  
+    Direct, //number
+    Indirect, //[number]
+    Const  //$number
 }
 
 public enum Operator : byte

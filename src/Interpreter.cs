@@ -5,7 +5,9 @@ namespace Interpreter;
 
 public class Engine
 {
-    
+    //This interpreter could be much more optimized by removing the branching and hardcoding addressing modes.
+    //Even better: re-write this thing in C or write a compiler.
+
     private byte[] memory;
     private int pc = 0;
     private List<Instruction> code;
@@ -13,24 +15,11 @@ public class Engine
     public Engine(List<Instruction> code)
     {
         this.code = code;
-        memory = new byte[4096];
+        memory = new byte[4096]; 
         
     }
-
-    private byte GetValue(in InstrValue val)
-    {
-        return val.mode switch
-        {
-            AddressMode.Direct => memory[val.value],
-            AddressMode.Indirect => memory[memory[val.value]],
-            AddressMode.Const => (byte)val.value,
-            _ => 0,
-        };
-    }
-
     
-
-    //returns actual memory address
+    //Returns resolved memory address based on address mode.
     private int MemAccess(in InstrValue val)
     {
         switch(val.mode)
@@ -44,6 +33,7 @@ public class Engine
         }
     }
 
+    // ->
     private void Assign(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -54,6 +44,7 @@ public class Engine
         memory[MemAccess(instruction.val2)] = memory[MemAccess(instruction.val1)];
     }
 
+    // &
     private void And(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -64,6 +55,7 @@ public class Engine
         memory[MemAccess(instruction.val3)] = (byte)(memory[MemAccess(instruction.val1)] & memory[MemAccess(instruction.val2)]);
     }
 
+    // |
     private void Or(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -74,6 +66,7 @@ public class Engine
         memory[MemAccess(instruction.val3)] = (byte)(memory[MemAccess(instruction.val1)] | memory[MemAccess(instruction.val2)]);
     }
 
+    // ^
     private void Xor(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -84,6 +77,7 @@ public class Engine
         memory[MemAccess(instruction.val3)] = (byte)(memory[MemAccess(instruction.val1)] ^ memory[MemAccess(instruction.val2)]);
     }
 
+    // <
     private void ShiftLeft(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -93,7 +87,8 @@ public class Engine
         }
         memory[MemAccess(instruction.val3)] = (byte)(memory[MemAccess(instruction.val1)] << memory[MemAccess(instruction.val2)]);
     }
-    
+
+    // >    
     private void ShiftRight(in Instruction instruction)
     {
         if(instruction.val2.mode == AddressMode.Const)
@@ -104,6 +99,7 @@ public class Engine
         memory[MemAccess(instruction.val3)] = (byte)(memory[MemAccess(instruction.val1)] >> memory[MemAccess(instruction.val2)]);
     }
 
+    // !
     private void Not(in Instruction instruction)
     {
         if(instruction.val1.mode == AddressMode.Const)
@@ -114,6 +110,7 @@ public class Engine
         memory[MemAccess(instruction.val2)] = (byte)~memory[MemAccess(instruction.val1)];
     }
 
+    // ?
     private void Cmp(in Instruction instruction)
     {
         if(memory[MemAccess(instruction.val1)] != 0)
@@ -122,6 +119,7 @@ public class Engine
         }
     }
 
+    // ' 
     private void Jmp(in Instruction instruction)
     {
         pc = instruction.val1.value;
@@ -131,15 +129,15 @@ public class Engine
     {
         switch(memory[0])
         {
-            case 1: //print num
+            case 1: //Print num
                 Console.Write(memory[memory[1]]);
             break;
 
-            case 2: //print char
+            case 2: //Print char
                 Console.Write((char)memory[memory[1]]);
             break;
 
-            case 3:
+            case 3: //Take console input
                 memory[memory[1]] = (byte)Console.ReadKey().KeyChar;
             break;
 
@@ -164,11 +162,11 @@ public class Engine
                Set32Sys();
             break;
 
-            case 8:
+            case 8: //Load programm counter
                 LoadPCSys();
             break;
 
-            case 9:
+            case 9: //Load and set pc to passed value
                 SetPCSys();
             break;
 
@@ -258,6 +256,7 @@ public class Engine
     private void Load32Sys()
     {
         //1 is expected to hold the address of the first byte of the 32 bit address
+        //Layout: [mem(1)] [a2] [a3] [a4]
         byte[] adr = new byte[4];
         for(int i = 0; i < 4 ; i++)
         {

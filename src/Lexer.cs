@@ -92,14 +92,18 @@ public class Lexer
 
     private char Next()
     {
-        curIndx++;
+        curIndx++; 
         if(curIndx<code.Length)
         {
+
             if(current == '\n') {lineCount++;}
+            
             current = code[curIndx];
             return code[curIndx];
         }
-        current = '\0';
+        //We return \0 every time Next() gets out of range.
+        //Error handling is passed on to the caller.
+        current = '\0'; 
         return '\0';
     }
 
@@ -114,11 +118,12 @@ public class Lexer
             {
                 MakeComment();
             }
-            else if(opMap.TryGetValue(current,out Token tok))
+            else if(opMap.TryGetValue(current,out Token tok)) //Is in operator dict?
             {
+                //Copy proper line and file into token.
                 Token tcpy = tok;
                 tcpy.line = lineCount;
-                tcpy.file = fileName;
+                tcpy.file = fileName; 
                 tokens.Add(tcpy);
             }
             else if(skipChars.Contains(current))
@@ -130,6 +135,9 @@ public class Lexer
                 if(current == '#')
                 {
                     tokens.Add(MakeMacro());
+
+                    //Next is called at the start of the loop,
+                    //MakeMacro ends at next unrelated, which would get skipped.
                     curIndx--;
                 }
                 else if(current == '$')
@@ -143,7 +151,7 @@ public class Lexer
                 else if(numbers.Contains(current))
                 {
                     tokens.Add(new(TokenType.Address,MakeNum(),lineCount,fileName));
-                    curIndx--; //Else next char gets skipped.
+                    curIndx--;
                 }
                 else if(current == '_')
                 {
@@ -158,6 +166,7 @@ public class Lexer
             }
 
         }
+        //Always end token list with END
         tokens.Add(new(TokenType.End,"END"));
         return tokens;
     }
@@ -167,6 +176,7 @@ public class Lexer
         Next();
         while(current != '"' && current != '\0')
         {
+            //Converting all chars into const values
             tokenList.Add(new(TokenType.AsValue,"$",lineCount,fileName));
             tokenList.Add(new(TokenType.Address,$"{(int)current}",lineCount,fileName));
             Next();
@@ -175,6 +185,7 @@ public class Lexer
 
     private void MakeComment()
     {
+        //Keeping track of comment start in case of unclosed comment error
         int start = lineCount;
         
         while(Next() != ';')
@@ -241,7 +252,8 @@ public class Lexer
             Next();
         }
 
-        if(keywordMap.TryGetValue(word, out Token tok))
+        //Check if it is a known keyword, else make name.
+        if(keywordMap.TryGetValue(word, out Token tok)) 
         {
             Token tcpy = tok;
             tcpy.line = lineCount;

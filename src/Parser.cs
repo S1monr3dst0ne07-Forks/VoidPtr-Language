@@ -57,7 +57,7 @@ public class Parser
         InstrValue address1 = new();
         Next();
 
-        bool lastAddress = false; //check if last token was a value
+        bool lastAddress = false; //Check if last token was a value
        
         while(current.type != TokenType.End)
         {
@@ -103,6 +103,7 @@ public class Parser
 
             }
 
+            //Double operators are generated here
             if(opTypes.Contains(current.type))
             {
                 instructions.Add(MakeOp(address1));
@@ -114,6 +115,7 @@ public class Parser
             }
         }
 
+        //Check if all labels where defined.
         foreach(KeyValuePair<string,List<int>> subs in labelSubscribers)
         {
             if(subs.Value.Count != 0)
@@ -125,12 +127,15 @@ public class Parser
         return instructions;
     }
 
+    //Define a label
     private void MakeLabel(string name, int instrIndx)
     {
         labelDict.Add(name, instrIndx);
+
+        //Labels can be used before they are defined, so we check if anyone was already using it.
         if(labelSubscribers.TryGetValue(name, out List<int> subs))
         {
-            foreach(int indx in subs)
+            foreach(int indx in subs) //Patch label address for all subscribers
             {
                 Instruction ins = instructions[indx];
                 ins.val1.value = instrIndx;
@@ -140,14 +145,18 @@ public class Parser
         }
     }
 
+    //Returns the address of the given label.
     private int GetLabel(string label, int currentIndx)
     {
+
         if(labelDict.TryGetValue(label, out int jmpAdrs))
         {
+            //Label was already defined: return address.
             return jmpAdrs;
         }
         else
         {
+            //Label was not yet defined, remember this address for future patching.
             if(labelSubscribers.TryGetValue(label, out List<int> subs))
             {
                 subs.Add(currentIndx);
@@ -258,11 +267,14 @@ public class Parser
         {
             Next();
             Expect(TokenType.Address);
+
             int val = int.Parse(current.val);
+            
             if(val > 255)
             {
                 ExpectError("Literals are only allowed to be in a 1 byte range");
             }
+            
             val2 = new InstrValue(AddressMode.Const, val);
             Next();
         }
@@ -283,20 +295,26 @@ public class Parser
 
         string val = "";
         AddressMode mode = AddressMode.Direct;
+        
         if(current.type == TokenType.OpenBr)
         {
             mode = AddressMode.Indirect;
             Next();
+
             Expect(TokenType.Address);
             val = current.val;
             Next();
+
             Expect(TokenType.ClosedBr);
             Next();
+
             return new InstrValue(mode,int.Parse(val));
         }
 
         Expect(TokenType.Address);
+
         InstrValue value = new InstrValue(mode, int.Parse(current.val));
+
         Next();
         
         return value;

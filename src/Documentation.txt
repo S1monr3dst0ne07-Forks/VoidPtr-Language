@@ -6,11 +6,12 @@ Usage:
     If no argument is passed, VoidPtr will search for a file named 'main.vptr'
 
     If an argument is passed, VoidPtr will expect a file path and search for it.
-    
+
+    VoidPtr always generates Token and instruction dump files for debug purposes. 
 
 Comments
 
-Comments need to e enclosed in ;
+Comments need to  be enclosed in ;
 
 ;This is a comment;
 
