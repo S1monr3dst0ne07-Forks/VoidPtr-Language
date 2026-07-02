@@ -1,7 +1,7 @@
 <h1>VoidPtr</h1>
 <img src = "https://github.com/TheGameGuy2/ByteLang/blob/main/void_ptr_logo.png" </img>
 <h3>An eso lang allowing only logical bitwise operations on single bytes</h3>
-
+<p>This project was made for CS class. <br> The source of this documentation is src/Documentation.txt</p>
 <h2>Usage</h2>
 
 <ul>
@@ -104,12 +104,12 @@ The second performs the same operation using a constant.
 <h4>Supported Double Operators</h4>
 
 <ul>
-<li><code>&amp;</code> — Bitwise AND</li>
-<li><code>|</code> — Bitwise OR</li>
-<li><code>^</code> — Bitwise XOR</li>
-<li><code>&lt;</code> — Left shift</li>
-<li><code>&gt;</code> — Right shift</li>
-<li><code>-></code> — Assignment</li>
+<li><code>&amp;</code> - Bitwise AND</li>
+<li><code>|</code> - Bitwise OR</li>
+<li><code>^</code> - Bitwise XOR</li>
+<li><code>&lt;</code> - Left shift</li>
+<li><code>&gt;</code> - Right shift</li>
+<li><code>-></code> - Assignment</li>
 </ul>
 
 <p>
@@ -138,7 +138,7 @@ For shift operations, the second argument specifies the shift amount.
 <h4>Supported Single Operators</h4>
 
 <ul>
-<li><code>!</code> — Bitwise NOT</li>
+<li><code>!</code> - Bitwise NOT</li>
 </ul>
 
 <hr>
