@@ -38,6 +38,7 @@ def lex(path):
                 case x if x.isdigit(): return 'iden'
                 case x if x.isalpha(): return 'iden'
                 case '_': return 'iden'
+                case '.': return 'iden'
                 case ' ' | '\t' | '\n' | '\r': return 'format'
                 case ';': return 'comment'
                 case '\0': return 'terminator'
@@ -73,16 +74,18 @@ def lex(path):
         return toks
 
     def preprocess(raw):
-        defs = {}  # macro name -> macro content
-        usage = {} # marco name -> usage count (for local labels)
+        TOKS = 0
+        USAGE = 1
+        defs : dict[str, list[list, int]] = {}
 
         def instance(name): #create instance of macro 
             out = []
-            for tok in defs[name]:
+            usage = defs[name][USAGE]
+            for tok in defs[name][TOKS]:
                 if tok.startswith('__'):
-                    tok += f"_inst{usage[name]}"
+                    tok += f"_inst{usage}"
                 out.append(tok)
-            usage[name] += 1
+            defs[name][USAGE] += 1
             return out
 
         def get():
@@ -109,8 +112,9 @@ def lex(path):
                 match get():
                     case 'def':
                         name = get()
-                        defs[name] = run()
-                        usage[name] = 0
+                        defs[name] = [None, None]
+                        defs[name][TOKS] = run()
+                        defs[name][USAGE] = 0
                     case 'end':
                         break
                     case 'stream':
@@ -127,13 +131,23 @@ def lex(path):
                             assert first == '$'
                             out += ['$', content.pop(0), '->', base]
                             base += 1
-
+                    case 'paste':
+                        rel_path = get()
+                        abs_path = os.path.join(os.path.dirname(path), rel_path)
+                        tokens, subdefs = full(abs_path)
+                        defs.update(subdefs)
+                        out += tokens
 
             return out
 
-        return run()
+        return run(), defs
 
-    return Streamer(preprocess(tokenize(path)))
+    def full(path):
+        return preprocess(tokenize(path))
+
+    tokens, _ = full(path)
+    print(f"Tokens: {len(tokens)}")
+    return Streamer(tokens)
 
 
 
