@@ -387,11 +387,6 @@ sys_char_out:
     with open(build_path, 'w') as f:
         f.write('\n'.join(asm))
 
-    subprocess.run(['fasm', build_path, out_path])
-    subprocess.run(['chmod', '+x', out_path])
-    subprocess.run([f'./{out_path}'])
-
-
 
 if __name__ == "__main__":
     main()
