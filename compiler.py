@@ -166,7 +166,7 @@ class AstValue:
             case 'direct':   emit(f'mov {reg}, [mem + {addr}]')
             case 'indirect': 
                 emit(f'mov {reg}, [mem + {addr}]')
-                emit(f'mov {reg}, [mem + {reg}]')
+                emit(f'mov {reg}, [mem + {reg}*8]')
 
 
 ops = { '&':'and', '|':'or', '^':'xor', '<':'shl', '>':'shr' }
