@@ -4,36 +4,15 @@ from typing import Literal, Any
 from dataclasses import dataclass as dc
 
 
-def tokenize(path):
-    with open(path, 'r') as f:
-        src = f.read()
-
-    def get(char):
-        match char:
-            case x if x.isdigit(): return 'iden'
-            case x if x.isalpha(): return 'iden'
-            case '_': return 'iden'
-            case ' ': return 'space'
-            case '\t' | '\n' | '\r': return 'format'
-            case ';': return 'comment'
-            case '\0': return 'terminator'
-            case _: return 'symb'
-
+def lex(path):
     class Streamer:
         def __init__(self, toks):
             self.toks = toks
 
-        def space(self):
-            if all(c == ' ' for c in self.toks[0]):
-                return len(self.toks.pop(0))
-            return 0
-
-        def peek(self):
-            self.space()
-            return self.toks[0]
+        def peek(self, offset=0):
+            return self.toks[offset] if len(self.toks) > offset else None
 
         def pop(self):
-            self.space()
             return self.toks.pop(0)
 
         def has(self):
@@ -45,41 +24,92 @@ def tokenize(path):
                 print(f"Error: Expected `{should}` got `{be}`")
                 sys.exit(1)
 
+    def tokenize(path):
+        with open(path, 'r') as f:
+            src = f.read()
+
+        def get(char):
+            match char:
+                case x if x.isdigit(): return 'iden'
+                case x if x.isalpha(): return 'iden'
+                case '_': return 'iden'
+                case ' ' | '\t' | '\n' | '\r': return 'format'
+                case ';': return 'comment'
+                case '\0': return 'terminator'
+                case _: return 'symb'
+
+        state = None 
+        buffer = ''
+        comment = False
+        toks = []
+        for char in src + '\n':
+            kind = get(char)
+
+            if kind == 'comment': 
+                comment = not comment
+                buffer = ''
+                continue
+
+            if kind != state and not comment:
+                if state != 'format' and buffer:
+                    toks.append(buffer)
+                buffer = '' 
+
+            buffer += char
+            state = kind
+
+        return toks
+
+    def preprocess(raw):
+        defs = {}  # macro name -> macro content
+        usage = {} # marco name -> usage count (for local labels)
+
+        def instance(name): #create instance of macro 
+            out = []
+            for tok in defs[name]:
+                if tok.startswith('__'):
+                    tok += f"_inst{usage[name]}"
+                out.append(tok)
+            usage[name] += 1
+            return out
+
+        def get():
+            nonlocal raw, defs
+            tok = raw.pop(0)
+
+            #auto expand
+            if tok in defs:
+                raw[:0] = instance(tok)
+                return get()
+
+            return tok
+
+        def run():
+            nonlocal raw, defs
+            out = []
+            while raw:
+                tok = get()
+                if tok != '#': #normal token
+                    out.append(tok)
+                    continue
+
+                #proprocessor prefix
+                match get():
+                    case 'def':
+                        name = get()
+                        defs[name] = run()
+                        usage[name] = 0
+                    case 'end':
+                        break
+
+            return out
+
+        return run()
+
+    return Streamer(preprocess(tokenize(path)))
 
 
-    state = None 
-    buffer = ''
-    comment = False
-    toks = []
-    for char in src + '\n':
-        kind = get(char)
 
-        if kind == 'comment': 
-            comment = not comment
-            buffer = ''
-            continue
-
-        if kind != state and not comment:
-            if state != 'format' and buffer:
-                toks.append(buffer)
-            buffer = '' 
-
-        buffer += char
-        state = kind
-
-    return Streamer(toks)
-
-
-@dc
-class AstDef:
-    name : str
-    body : "AstProg"
-
-    @classmethod
-    def parse(cls, stream):
-        name = stream.pop()
-        body = AstProg.parse(stream)
-        return cls(name, body)
 
 @dc
 class AstValue:
@@ -99,6 +129,9 @@ class AstValue:
             case x:
                 return cls(int(x), 'direct')
 
+
+ops = { '&':'and', '|':'or', '^':'xor', '<':'shl', '>':'shr' }
+
 @dc
 class AstAssign:
     a : AstValue
@@ -112,7 +145,6 @@ class AstAssign:
         b = None
         op = 'none'
         
-        ops = { '&':'and', '|':'or', '^':'xor', '<':'shl', '>':'shr' }
         if stream.peek() in ops:
             op = ops[stream.pop()]
             a = AstValue.parse(stream)
@@ -155,7 +187,6 @@ class AstBranch:
         return cls(cond, target)
 
 
-
 @dc
 class AstProg:
     nodes : list
@@ -163,12 +194,6 @@ class AstProg:
     @staticmethod
     def parse_node(stream):
         match stream.peek():
-            case '#': 
-                stream.expect('#')
-                match stream.pop():
-                    case 'def': return AstDef.parse(stream)
-                    case 'end': return None
-
             case x if x.startswith('_'): return AstLabel.parse(stream)
             case "'":                    return AstJump.parse(stream)
             case '?':                    return AstBranch.parse(stream)
@@ -184,12 +209,6 @@ class AstProg:
         ): nodes.append(node)
         return nodes
 
-    @staticmethod
-    def parse_file(path):
-        stream = tokenize(path)
-        return AstProg.parse(stream)
-
-
 
 
 def main():
@@ -198,7 +217,9 @@ def main():
         print(f"Error: No such file: `{path}`")
         sys.exit(1)
 
-    AstProg.parse_file(path)
+    stream = lex(path)
+    root = AstProg.parse(stream)
+    print(root)
 
 
 
