@@ -1,7 +1,12 @@
+
+
+
 import sys
 import os
 from typing import Literal, Any
 from dataclasses import dataclass as dc
+import itertools
+import subprocess
 
 
 def lex(path):
@@ -129,6 +134,18 @@ class AstValue:
             case x:
                 return cls(int(x), 'direct')
 
+    def size(self):
+        return self.number if self.kind in ('direct', 'indirect') else 0
+
+    def load(self, emit, reg):
+        addr = self.number * 4
+        match self.kind:
+            case 'lit':      emit(f'mov {reg}, {self.number}')
+            case 'direct':   emit(f'mov {reg}, [mem + {addr}]')
+            case 'indirect': 
+                emit(f'mov {reg}, [mem + {addr}]')
+                emit(f'mov {reg}, [mem + {reg}]')
+
 
 ops = { '&':'and', '|':'or', '^':'xor', '<':'shl', '>':'shr' }
 
@@ -147,13 +164,29 @@ class AstAssign:
         
         if stream.peek() in ops:
             op = ops[stream.pop()]
-            a = AstValue.parse(stream)
+            b = AstValue.parse(stream)
 
         stream.expect('->')
         dst = int(stream.pop())
 
         return cls(a, b, op, dst)
 
+    def size(self):
+        return max(
+            self.a.size(), 
+            self.b.size() if self.b is not None else 0,
+            self.dst
+        )
+
+    def compile(self, emit):
+        self.a.load(emit ,"rax")
+
+        if self.b is not None:
+            reg = "cl" if self.op in ('shl', 'shr') else "rbx"
+            self.b.load(emit, reg)
+            emit(f"{self.op} rax, {reg}")
+
+        emit(f'mov [mem + {self.dst*4}], rax')
 
 
 
@@ -165,6 +198,13 @@ class AstLabel:
     def parse(cls, stream):
         return cls(stream.pop())
 
+    def size(self):
+        return 0
+
+    def compile(self, emit):
+        emit(f'{self.name}:')
+
+
 @dc
 class AstJump:
     name : str
@@ -173,6 +213,15 @@ class AstJump:
     def parse(cls, stream):
         stream.expect("'")
         return cls(stream.pop())
+
+    def size(self):
+        return 0
+
+    def compile(self, emit):
+        emit(f'jmp {self.name}')
+
+
+skip_gen = itertools.count(0)
 
 @dc
 class AstBranch:
@@ -185,6 +234,18 @@ class AstBranch:
         cond = AstValue.parse(stream)
         target = AstProg.parse_node(stream)
         return cls(cond, target)
+
+    def size(self):
+        return max(self.cond.size(), self.target.size())
+
+    def compile(self, emit):
+        skip_label = f"skip{next(skip_gen)}"
+
+        self.cond.load(emit, 'rax')
+        emit(f"cmp rax, 0")
+        emit(f"jne {skip_label}")
+        self.target.compile(emit)
+        emit(f"{skip_label}:")
 
 
 @dc
@@ -207,7 +268,15 @@ class AstProg:
                 (node := cls.parse_node(stream))
                 is not None
         ): nodes.append(node)
-        return nodes
+        return cls(nodes)
+
+    def size(self):
+        return max(x.size() for x in self.nodes)
+
+    def compile(self, emit):
+        for node in self.nodes:
+            node.compile(emit)
+
 
 
 
@@ -217,9 +286,45 @@ def main():
         print(f"Error: No such file: `{path}`")
         sys.exit(1)
 
+    asm = []
+    emitter = lambda x: asm.append(x)
+
+    #actual compile 
     stream = lex(path)
     root = AstProg.parse(stream)
-    print(root)
+
+    #fasm header
+    mem_size = root.size()
+    emitter("format ELF64 executable")
+    emitter("entry start")
+    emitter(f"mem: rq {mem_size}")
+    emitter("segment readable executable")
+    emitter("""
+sys:
+    cmp qword [mem], 1
+    je sys_print
+    ret
+
+sys_print:
+    mov rax, [mem + 1]
+    mov rax, [mem + rax]
+            """)
+
+    emitter("start:")
+
+    root.compile(emitter)
+
+    emitter("mov rdi, 0")
+    emitter("mov rax, 60")
+    emitter("syscall")
+
+    build_path = 'build.asm'
+    out_path   = 'build.out'
+    with open(build_path, 'w') as f:
+        f.write('\n'.join(asm))
+
+    subprocess.run(['fasm', build_path, out_path])
+    subprocess.run(['chmod', '+x', out_path])
 
 
 
